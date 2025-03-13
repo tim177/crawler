@@ -115,24 +115,6 @@ chatbot-project/
 2. The system **retrieves relevant data** from ChromaDB.
 3. Groq LLM **generates a response** based on the retrieved data.
 
-#### **API Endpoint**
-
-- **POST /query**
-  - **Request Body**:
-    ```json
-    {
-      "query": "What is machine learning?"
-    }
-    ```
-  - **Response**:
-    ```json
-    {
-      "response": "Machine learning is a subset of AI..."
-    }
-    ```
-
----
-
 ## **🖥 Step 3: Frontend Setup (React.js)**
 
 ### **3.1 User Interface (UI)**
