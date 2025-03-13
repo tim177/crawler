@@ -20,7 +20,7 @@ const ToggleSections = () => {
 
     try {
       const response = await fetch(
-        "https://crawler-backend-ftdv.onrender.com/query",
+        "https://crawler-backend-ftdv.onrender.com/crawl",
         {
           method: "POST",
           headers: {
