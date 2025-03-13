@@ -1,0 +1,23 @@
+# Node.js
+/node_modules/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables (commonly used to store sensitive keys and settings)
+.env
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor files (e.g., VSCode, IntelliJ)
+.vscode/
+.idea/
