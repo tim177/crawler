@@ -36,7 +36,6 @@ const ToggleSections = () => {
 
       const data = await response.json();
       setApiResponse(data);
-      alert("Links fetched successfully!");
     } catch (error) {
       console.error("Error fetching links:", error);
       alert("An error occurred. Please try again.");
