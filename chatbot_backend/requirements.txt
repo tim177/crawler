@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+chromadb
+langchain-groq
+tqdm
+urllib3
