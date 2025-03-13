@@ -70,20 +70,23 @@ export function ChatPanel({ chatConfig }: ChatPanelProps) {
     setMessages((prev) => [...prev, tempAssistantMessage]);
 
     try {
-      const response = await fetch("http://localhost:8000/query", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: input, // Send user input as "query"
-          messages: [...messages, userMessage].map(({ role, content }) => ({
-            role,
-            content,
-          })),
-          config: chatConfig,
-        }),
-      });
+      const response = await fetch(
+        "https://crawler-backend-ftdv.onrender.com/query",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: input, // Send user input as "query"
+            messages: [...messages, userMessage].map(({ role, content }) => ({
+              role,
+              content,
+            })),
+            config: chatConfig,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
