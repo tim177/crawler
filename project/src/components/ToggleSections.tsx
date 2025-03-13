@@ -19,7 +19,7 @@ const ToggleSections = () => {
     setApiResponse(null);
 
     try {
-      const response = await fetch("http://localhost:3000/crawl", {
+      const response = await fetch("http://localhost:8000/crawl", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

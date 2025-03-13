@@ -70,7 +70,7 @@ export function ChatPanel({ chatConfig }: ChatPanelProps) {
     setMessages((prev) => [...prev, tempAssistantMessage]);
 
     try {
-      const response = await fetch("http://localhost:3000/query", {
+      const response = await fetch("http://localhost:8000/query", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -130,11 +130,14 @@ export function ChatPanel({ chatConfig }: ChatPanelProps) {
                     : "bg-gray-100 text-gray-800"
                 }`}
               >
-                {message.content ||
-                  (isLoading &&
-                    message.id === messages[messages.length - 1].id && (
-                      <span className="inline-block w-4 h-4 bg-gray-300 rounded-full animate-pulse"></span>
-                    ))}
+                {typeof message.content === "object" && message.content !== null
+                  ? (message.content as { response: string }).response // Type assertion
+                  : message.content ?? ""}
+                {isLoading &&
+                  messages.length > 0 &&
+                  message.id === messages[messages.length - 1]?.id && (
+                    <span className="inline-block w-4 h-4 bg-gray-300 rounded-full animate-pulse"></span>
+                  )}
               </div>
             </div>
           ))}
