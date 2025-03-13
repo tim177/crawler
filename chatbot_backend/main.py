@@ -4,6 +4,7 @@ import subprocess
 import json
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -44,24 +45,36 @@ def run_python_script(command, args):
 
 @app.options("/crawl")  # Handle OPTIONS request for /crawl
 async def options_crawl():
-    return {}  # FastAPI will handle the rest due to CORS middleware
+    response = JSONResponse(content={})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 @app.post("/crawl")
 async def crawl(request: CrawlRequest):
     try:
         result = run_python_script("crawl", [request.url, str(request.maxPages)])
-        return {"success": True, "data": result}
+        response = JSONResponse(content={"success": True, "data": result})
     except HTTPException as e:
-        return {"error": e.detail}
+        response = JSONResponse(content={"error": e.detail})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 @app.options("/query")  # Handle OPTIONS request for /query
 async def options_query():
-    return {}
+    response = JSONResponse(content={})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 @app.post("/query")
 async def query(request: QueryRequest):
     try:
         result = run_python_script("query", [request.query])
-        return {"response": result}
+        response = JSONResponse(content={"response": result})
     except HTTPException as e:
-        return {"error": e.detail}
+        response = JSONResponse(content={"error": e.detail})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
