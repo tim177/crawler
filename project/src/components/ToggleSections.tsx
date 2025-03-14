@@ -111,27 +111,6 @@ const ToggleSections = () => {
 
   return (
     <div className="w-full p-6 bg-transparent min-h-screen flex flex-col md:flex-row gap-6">
-      <div>
-        <h1>Scraper</h1>
-        <textarea
-          placeholder="Enter links (comma separated)"
-          onChange={(e) => setLinks(e.target.value.split(","))}
-        />
-        <br />
-        <button onClick={handleScrape} disabled={loadingScrape}>
-          {loadingScrape ? "Scraping..." : "Scrape Links"}
-        </button>
-        <br />
-        <button
-          onClick={handleStore}
-          disabled={loadingStore || scrapedData.length === 0}
-        >
-          {loadingStore ? "Storing..." : "Store Data"}
-        </button>
-        {/* {scrapedData.length > 0 && (
-          <pre>{JSON.stringify(scrapedData, null, 2)}</pre>
-        )} */}
-      </div>
       {/* Toggle Buttons */}
       <div className="flex flex-row md:flex-col gap-2 md:gap-4 mb-4 md:mb-0">
         <button
@@ -191,8 +170,7 @@ const ToggleSections = () => {
                 Crawl Website
               </label>
               <div className="flex mt-2 group flex-col gap-4">
-                <div>
-                  <label>Link of website</label>
+                <div className="flex">
                   <input
                     type="url"
                     id="crawl"
@@ -200,7 +178,7 @@ const ToggleSections = () => {
                     value={crawlUrl}
                     onChange={(e) => setCrawlUrl(e.target.value)}
                     disabled={isLoading}
-                    className="flex-1 border border-gray-300 rounded-l-md px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400"
+                    className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400"
                   />
                 </div>
                 {/* <div>
@@ -331,6 +309,35 @@ const ToggleSections = () => {
               </div>
             )}
 
+            <div className="max-w-md mx-auto p-6 mt-8 bg-white rounded-lg shadow-md">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">Scraper</h1>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleScrape}
+                  disabled={loadingScrape}
+                  className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingScrape ? "Scraping..." : "Scrape Links"}
+                </button>
+
+                <button
+                  onClick={handleStore}
+                  disabled={loadingStore || scrapedData.length === 0}
+                  className="w-full py-2.5 px-4 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingStore ? "Storing..." : "Store Data"}
+                </button>
+              </div>
+
+              {scrapedData.length > 0 && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+                  <p className="text-sm text-gray-500 mb-1">
+                    Scraped {scrapedData.length} items
+                  </p>
+                </div>
+              )}
+            </div>
             {/* {apiResponse && <StoreButton links={apiResponse.links} />} */}
           </div>
         )}
