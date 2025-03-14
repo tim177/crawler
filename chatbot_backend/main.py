@@ -90,12 +90,14 @@ def handle_crawl(request: CrawlRequest):
             scraped_data = json.load(file)  # ✅ Now we have a List[Dict]
 
         # ✅ Step 6: Process Data with ChromaDB
-        processing_result = store(scraped_data)
+        store(scraped_data)
+
+        print(f"✅ Scraped data stored at: {scraped_data_file_path}", file=sys.stderr)
 
         # ✅ Step 7: View Stored Data
-        result = view()
+        # result = view()
 
-        print(f"📌 Final Stored Data: {result}", file=sys.stderr)
+        # print(f"📌 Final Stored Data: {result}", file=sys.stderr)
 
         return JSONResponse(content={"success": True, "links": links})
 
