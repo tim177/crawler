@@ -26,7 +26,7 @@ class QueryRequest(BaseModel):
 
 # Define paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current script's directory
-SCRIPT_PATH = os.path.join(BASE_DIR, "scrapper.py")  # Corrected script path
+SCRIPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "scrapper.py"))
 DATA_DIR = os.path.join(BASE_DIR, "data")  # Ensure data folder is inside chatbot_backend 
 
 # Ensure the data directory exists
