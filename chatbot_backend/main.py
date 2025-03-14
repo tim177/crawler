@@ -19,13 +19,17 @@ from scrapper import (
 # Initialize FastAPI app
 app = FastAPI()
 
-# Enable CORS (Restrict allowed origins for security)
+# ✅ Proper CORS Middleware Setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ✅ Allow all origins
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],  # ✅ Allow frontend apps
+    allow_origin_regex=".*",  # ✅ Allow all origins (fix for wildcard issues)
     allow_credentials=True,
-    allow_methods=["*"],  # ✅ Allow all HTTP methods
-    allow_headers=["*"],  # ✅ Allow all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # ✅ Explicitly allowed methods
+    allow_headers=[
+        "Content-Type", "Authorization", "X-Requested-With",
+        "Accept", "Origin", "User-Agent"
+    ],  # ✅ Explicitly allowed headers
 )
 
 # Request models
@@ -42,6 +46,13 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # Ensure the data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
+
+@app.options("/{full_path:path}")
+async def preflight_check():
+    """
+    ✅ Handles preflight CORS requests.
+    """
+    return JSONResponse(content={}, status_code=200)
 
 @app.post("/crawl")
 def handle_crawl(request: CrawlRequest):
@@ -94,11 +105,6 @@ def handle_crawl(request: CrawlRequest):
 
         print(f"✅ Scraped data stored at: {scraped_data_file_path}", file=sys.stderr)
 
-        # ✅ Step 7: View Stored Data
-        # result = view()
-
-        # print(f"📌 Final Stored Data: {result}", file=sys.stderr)
-
         return JSONResponse(content={"success": True, "links": links})
 
     except HTTPException as http_err:
@@ -115,4 +121,4 @@ async def handle_query(request: QueryRequest):
         return JSONResponse(content={"response": result})
     except Exception as e:
         print(f"❌ Error in /query: {e}", file=sys.stderr)
-        return JSONResponse(content={"error": str(e)}, status_code=500) 
+        return JSONResponse(content={"error": str(e)}, status_code=500)

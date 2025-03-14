@@ -169,21 +169,13 @@ def process_and_store(scraped_data: List[Dict]):
                 chroma_ids.append(f"doc_{doc_counter}")
                 doc_counter += 1
 
-    # Debug: Check what is being added
-    # print(f" Docs: {chroma_docs}")
-    # print(f" Metadata: {chroma_meta}")
-    # print(f" IDs: {chroma_ids}")
-
     if chroma_docs:
         chroma_collection.add(
             documents=chroma_docs,
             metadatas=chroma_meta,
             ids=chroma_ids
         )
-        # print(" Data added to ChromaDB")  # Confirm addition
-    # else:
-        # print(" No data to add!")  # Debug if empty
-
+        
 def query_and_respond(query: str) -> Dict:
     try:
         results = chroma_collection.query(
