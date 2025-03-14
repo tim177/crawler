@@ -34,7 +34,7 @@ async def preflight_handler(full_path: str):
 # ✅ Request Models
 class CrawlRequest(BaseModel):
     url: str
-    maxPages: int = 2
+    maxPages: int = 50
 
 class QueryRequest(BaseModel):
     query: str
