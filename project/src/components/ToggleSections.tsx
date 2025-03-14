@@ -1,12 +1,15 @@
-"use client";
-
 import { useState } from "react";
 import { AlertMessage } from "./Alert";
+
+interface ApiResponse {
+  success: boolean;
+  links: string[];
+}
 
 const ToggleSections = () => {
   const [activeSection, setActiveSection] = useState("website");
   const [crawlUrl, setCrawlUrl] = useState("");
-  const [apiResponse, setApiResponse] = useState(null);
+  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCrawlFetch = async () => {
@@ -196,10 +199,38 @@ const ToggleSections = () => {
                   </svg>
                   Crawl Results:
                 </h3>
-                <div className="mt-3 max-h-80 overflow-y-auto rounded-md">
-                  <pre className="text-sm text-gray-700 bg-white p-4 rounded-md border border-gray-200 overflow-x-auto">
-                    {JSON.stringify(apiResponse, null, 2)}
-                  </pre>
+                <p className="text-xs text-gray-500">
+                  {apiResponse.links.length} links found
+                </p>
+                <div className="mt-3 max-h-80 overflow-y-auto rounded-md shadow-sm border border-gray-200">
+                  <ul className="divide-y divide-gray-100 bg-white">
+                    {apiResponse?.links.length ? (
+                      apiResponse?.links.map((link, index) => (
+                        <li
+                          key={index}
+                          className="px-4 py-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-2 text-sm"
+                          >
+                            <span className="flex-shrink-0 font-medium text-gray-500 mt-0.5">
+                              {index + 1}.
+                            </span>
+                            <span className="text-blue-600 hover:text-blue-800 hover:underline break-all">
+                              {link}
+                            </span>
+                          </a>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-3 text-sm text-gray-500">
+                        No links found
+                      </li>
+                    )}
+                  </ul>
                 </div>
               </div>
             )}
