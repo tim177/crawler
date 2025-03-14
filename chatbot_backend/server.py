@@ -38,10 +38,10 @@ def run_python_script(command: str, args: list):
         if not os.path.exists(SCRIPT_PATH):
             raise HTTPException(status_code=500, detail=f"Script not found at {SCRIPT_PATH}")
 
-        # Use venv Python if available, otherwise fallback to system Python
-        python_executable = os.path.join(BASE_DIR, "venv", "Scripts", "python.exe")
+        # Try using virtual environment's Python first, fallback to system Python
+        python_executable = os.path.join(BASE_DIR, "venv", "bin", "python")
         if not os.path.exists(python_executable):
-            python_executable = "python"  # Fallback to system Python
+            python_executable = "python"
 
         print(f"Executing Python script: {SCRIPT_PATH} with command: {command} and args: {args}")
 
@@ -49,25 +49,28 @@ def run_python_script(command: str, args: list):
             [python_executable, SCRIPT_PATH, command, *args],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8"  # Ensure correct encoding
+            text=True
         )
 
         stdout, stderr = process.communicate()
 
+        # Print stdout and stderr for debugging
+        print(f"stdout: {stdout}")
+        print(f"stderr: {stderr}")
+
         if process.returncode != 0:
             raise HTTPException(status_code=500, detail=f"Python process error: {stderr.strip()}")
 
-        # Handle empty or invalid JSON output
         if stdout is None:
             raise HTTPException(status_code=500, detail="No output from script")
 
         try:
-            return json.loads(stdout.strip())  # Ensure trimming only if stdout is valid
+            return json.loads(stdout.strip())  
         except json.JSONDecodeError:
             raise HTTPException(status_code=500, detail=f"Error parsing JSON output: {stdout}")
 
     except Exception as e:
+        print(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.options("/crawl")  # Handle OPTIONS request for /crawl
