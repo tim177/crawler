@@ -24,24 +24,51 @@ class CrawlRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: str
 
+# Define paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current script's directory
+SCRIPT_PATH = os.path.join(BASE_DIR, "scrapper.py")  # Corrected script path
+DATA_DIR = os.path.join(BASE_DIR, "data")  # Ensure data folder is inside chatbot_backend 
+
+# Ensure the data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
+
 # Function to run the scrapper.py script
-def run_python_script(command, args):
-    script_path = os.path.join(os.path.dirname(__file__), "scrapper.py")
-    process = subprocess.Popen(
-        ["python", script_path, command] + args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    stdout, stderr = process.communicate()
-    
-    if process.returncode == 0:
+def run_python_script(command: str, args: list):
+    try:
+        if not os.path.exists(SCRIPT_PATH):
+            raise HTTPException(status_code=500, detail=f"Script not found at {SCRIPT_PATH}")
+
+        # Use venv Python if available, otherwise fallback to system Python
+        python_executable = os.path.join(BASE_DIR, "venv", "Scripts", "python.exe")
+        if not os.path.exists(python_executable):
+            python_executable = "python"  # Fallback to system Python
+
+        print(f"Executing Python script: {SCRIPT_PATH} with command: {command} and args: {args}")
+
+        process = subprocess.Popen(
+            [python_executable, SCRIPT_PATH, command, *args],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8"  # Ensure correct encoding
+        )
+
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Python process error: {stderr.strip()}")
+
+        # Handle empty or invalid JSON output
+        if stdout is None:
+            raise HTTPException(status_code=500, detail="No output from script")
+
         try:
-            return json.loads(stdout)
+            return json.loads(stdout.strip())  # Ensure trimming only if stdout is valid
         except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail="Invalid JSON output from script")
-    else:
-        raise HTTPException(status_code=500, detail=stderr)
+            raise HTTPException(status_code=500, detail=f"Error parsing JSON output: {stdout}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.options("/crawl")  # Handle OPTIONS request for /crawl
 async def options_crawl():
@@ -54,11 +81,26 @@ async def options_crawl():
 @app.post("/crawl")
 async def crawl(request: CrawlRequest):
     try:
-        result = run_python_script("crawl", [request.url, str(request.maxPages)])
-        response = JSONResponse(content={"success": True, "data": result})
+        links = run_python_script("crawl", [request.url, str(request.maxPages)])
+        links_file_path = os.path.join(DATA_DIR, "links.json")
+        with open(links_file_path, "w", encoding="utf-8") as file:
+            json.dump(links, file, indent=2)
+        scraped_data = run_python_script("scrape", [links_file_path])
+        scraped_data_file_path = os.path.join(DATA_DIR, "scraped_data.json")
+        with open(scraped_data_file_path, "w", encoding="utf-8") as file:
+            json.dump(scraped_data, file, indent=2)
+        processing_result = run_python_script("store", [scraped_data_file_path])
+        result = run_python_script("view", [])
+        response = JSONResponse(content={"success": True, "stored": processing_result})
     except HTTPException as e:
         response = JSONResponse(content={"error": e.detail})
+    except Exception as e:
+        response = JSONResponse(content={"error": str(e)})
+
+    # Add CORS headers manually
     response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
 @app.options("/query")  # Handle OPTIONS request for /query
