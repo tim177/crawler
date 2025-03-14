@@ -72,16 +72,15 @@ def handle_crawl(request: CrawlRequest):
         print(f"❌ Error in /crawl: {e}", file=sys.stderr)
         return JSONResponse(content={"error": str(e)}, status_code=500, headers={"Access-Control-Allow-Origin": "*"})
 
-# ✅ Store API (Stores Scraped Data)
-@app.post("/store")
-def store_links(request: dict):
+@app.post("/scrape")
+def scrape_links(request: dict):
     try:
         links = request.get("links", [])
         if not links:
             print("❌ No links provided", file=sys.stderr)
             raise HTTPException(status_code=400, detail="No links provided")
 
-        print(f"✅ Storing {len(links)} links...", file=sys.stderr)
+        print(f"✅ Scraping {len(links)} links...", file=sys.stderr)
 
         # ✅ Scrape the links
         scraped_data = scrape(links)
@@ -89,14 +88,37 @@ def store_links(request: dict):
             print("❌ Scraping failed", file=sys.stderr)
             raise HTTPException(status_code=500, detail="Scraping failed")
 
-        print("✅ Data scraped successfully, now storing in ChromaDB", file=sys.stderr)
+        print("✅ Data scraped successfully", file=sys.stderr)
+
+        # ✅ Return scraped data
+        return JSONResponse(
+            content={"success": True, "scraped_data": scraped_data},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in /scrape: {e}", file=sys.stderr)
+        return JSONResponse(
+            content={"error": str(e)}, 
+            status_code=500, 
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
+@app.post("/store")
+def store_links(request: dict):
+    try:
+        scraped_data = request.get("scraped_data", [])
+        if not scraped_data:
+            print("❌ No scraped data provided", file=sys.stderr)
+            raise HTTPException(status_code=400, detail="No scraped data provided")
+
+        print("✅ Storing data in ChromaDB...", file=sys.stderr)
 
         # ✅ Store in ChromaDB
         store(scraped_data)
 
         print("✅ Data stored in ChromaDB", file=sys.stderr)
 
-        # ✅ Return Response With CORS Headers
         return JSONResponse(
             content={"success": True, "message": "Data stored successfully"},
             headers={"Access-Control-Allow-Origin": "*"}

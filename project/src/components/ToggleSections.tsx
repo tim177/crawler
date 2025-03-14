@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from "react";
 import { AlertMessage } from "./Alert";
-import StoreButton from "./StoreDB";
+// import StoreButton from "./StoreDB";
 
 interface ApiResponse {
   success: boolean;
@@ -13,6 +14,12 @@ const ToggleSections = () => {
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [links, setLinks] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [scrapedData, setScrapedData] = useState<any[]>([]);
+  const [loadingScrape, setLoadingScrape] = useState(false);
+  const [loadingStore, setLoadingStore] = useState(false);
+  console.log(links);
   const handleCrawlFetch = async () => {
     if (!crawlUrl.startsWith("http://") && !crawlUrl.startsWith("https://")) {
       alert("Please enter a valid URL starting with http:// or https://");
@@ -50,8 +57,81 @@ const ToggleSections = () => {
     }
   };
 
+  const handleScrape = async () => {
+    setLoadingScrape(true);
+    try {
+      const API_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000/scrape" // Local environment
+          : "https://crawler-backend-ftdv.onrender.com/scrape"; // Production
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ links: apiResponse?.links }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setScrapedData(data.scraped_data);
+      } else {
+        console.error("Scrape failed:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching scrape data:", error);
+    } finally {
+      setLoadingScrape(false);
+    }
+  };
+
+  const handleStore = async () => {
+    setLoadingStore(true);
+    try {
+      const API_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000/store" // Local environment
+          : "https://crawler-backend-ftdv.onrender.com/store"; // Production
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scraped_data: scrapedData }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert("Data stored successfully!");
+      } else {
+        console.error("Store failed:", data.error);
+      }
+    } catch (error) {
+      console.error("Error storing data:", error);
+    } finally {
+      setLoadingStore(false);
+    }
+  };
+
   return (
     <div className="w-full p-6 bg-transparent min-h-screen flex flex-col md:flex-row gap-6">
+      <div>
+        <h1>Scraper</h1>
+        <textarea
+          placeholder="Enter links (comma separated)"
+          onChange={(e) => setLinks(e.target.value.split(","))}
+        />
+        <br />
+        <button onClick={handleScrape} disabled={loadingScrape}>
+          {loadingScrape ? "Scraping..." : "Scrape Links"}
+        </button>
+        <br />
+        <button
+          onClick={handleStore}
+          disabled={loadingStore || scrapedData.length === 0}
+        >
+          {loadingStore ? "Storing..." : "Store Data"}
+        </button>
+        {/* {scrapedData.length > 0 && (
+          <pre>{JSON.stringify(scrapedData, null, 2)}</pre>
+        )} */}
+      </div>
       {/* Toggle Buttons */}
       <div className="flex flex-row md:flex-col gap-2 md:gap-4 mb-4 md:mb-0">
         <button
@@ -251,7 +331,7 @@ const ToggleSections = () => {
               </div>
             )}
 
-            {apiResponse && <StoreButton links={apiResponse.links} />}
+            {/* {apiResponse && <StoreButton links={apiResponse.links} />} */}
           </div>
         )}
 
