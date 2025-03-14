@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -19,18 +19,23 @@ from scrapper import (
 # Initialize FastAPI app
 app = FastAPI()
 
-# ✅ Proper CORS Middleware Setup
+# ✅ CORS Middleware for Allowing All Requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],  # ✅ Allow frontend apps
-    allow_origin_regex=".*",  # ✅ Allow all origins (fix for wildcard issues)
+    allow_origins=["*"],  # ✅ Allow all origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # ✅ Explicitly allowed methods
-    allow_headers=[
-        "Content-Type", "Authorization", "X-Requested-With",
-        "Accept", "Origin", "User-Agent"
-    ],  # ✅ Explicitly allowed headers
+    allow_methods=["*"],  # ✅ Allow all HTTP methods
+    allow_headers=["*"],  # ✅ Allow all headers
 )
+
+# ✅ Global Middleware to Ensure CORS Headers in Every Response
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 # Request models
 class CrawlRequest(BaseModel):
@@ -101,6 +106,7 @@ def handle_crawl(request: CrawlRequest):
             scraped_data = json.load(file)  # ✅ Now we have a List[Dict]
 
         # ✅ Step 6: Process Data with ChromaDB
+        print("🤡 First scraped data:", scraped_data[0])
         store(scraped_data)
 
         print(f"✅ Scraped data stored at: {scraped_data_file_path}", file=sys.stderr)
