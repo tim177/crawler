@@ -77,8 +77,10 @@ def store_links(request: dict):
         if not scraped_data:
             raise HTTPException(status_code=500, detail="Scraping failed")
 
+        print("✅ data scrapped successfully now storing in chromadb")
+
         # ✅ Store in ChromaDB
-        store(scraped_data)
+        # store(scraped_data)
         print("✅ Data stored in ChromaDB", file=sys.stderr)
 
         return {"success": True, "message": "Data stored successfully"}
