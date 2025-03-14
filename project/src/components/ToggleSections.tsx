@@ -19,16 +19,18 @@ const ToggleSections = () => {
     setApiResponse(null);
 
     try {
-      const response = await fetch(
-        "https://crawler-backend-ftdv.onrender.com/crawl",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: crawlUrl }),
-        }
-      );
+      const API_URL =
+        window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000/crawl" // Local environment
+          : "https://crawler-backend-ftdv.onrender.com/crawl"; // Production
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: crawlUrl }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch links. Please try again.");
