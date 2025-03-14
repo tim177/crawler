@@ -157,7 +157,6 @@ def view_stored_data():
 
 
 def process_and_store(scraped_data: List[Dict]):
-    print("scraped data ===== >", scraped_data)
     chroma_docs, chroma_meta, chroma_ids = [], [], []
     doc_counter = 0
 
