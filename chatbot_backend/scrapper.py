@@ -92,20 +92,49 @@ def crawl_urls(homepage: str, max_pages: int = 100) -> List[str]:
 
     return list(all_urls)
 
-def scrape_urls_from_file(file_path: str) -> List[Dict]:
-    try:
-        with open(file_path, 'r') as f:
-            urls = json.load(f)
-        if not isinstance(urls, list):
-            raise ValueError("File content is not a valid JSON array.")
-    except Exception as e:
-        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
-        return []
+# def scrape_urls_from_file(file_path: str) -> List[Dict]:
+#     try:
+#         with open(file_path, 'r') as f:
+#             urls = json.load(f)
+#         if not isinstance(urls, list):
+#             raise ValueError("File content is not a valid JSON array.")
+#     except Exception as e:
+#         print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+#         return []
 
+#     def scrape_single_url(url: str) -> Dict:
+#         try:
+#             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+#             response = requests_retry_session().get(url, headers=headers, timeout=10)
+#             response.raise_for_status()
+
+#             soup = BeautifulSoup(response.text, 'html.parser')
+
+#             for script in soup(["script", "style"]):
+#                 script.decompose()
+
+#             text = soup.get_text()
+#             text = re.sub(r'\s+', ' ', text).strip()
+#             text = re.sub(r'[^\w\s.,?!-]', '', text)
+
+#             return {"url": url, "content": text, "status": "success"}
+#         except Exception as e:
+#             return {"url": url, "content": "", "status": f"error: {str(e)}"}
+
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+#         results = list(tqdm(
+#             executor.map(scrape_single_url, urls),
+#             total=len(urls),
+#             desc="Scraping URLs"
+#         ))
+
+#     return results
+
+def scrape_urls_from_file(links: List[str]) -> List[Dict]:
     def scrape_single_url(url: str) -> Dict:
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            response = requests_retry_session().get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -123,12 +152,13 @@ def scrape_urls_from_file(file_path: str) -> List[Dict]:
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         results = list(tqdm(
-            executor.map(scrape_single_url, urls),
-            total=len(urls),
+            executor.map(scrape_single_url, links),
+            total=len(links),
             desc="Scraping URLs"
         ))
 
     return results
+
 
 def chunk_text(text: str, chunk_size: int = 1000) -> List[str]:
     words = text.split()
@@ -175,7 +205,7 @@ def process_and_store(scraped_data: List[Dict]):
             metadatas=chroma_meta,
             ids=chroma_ids
         )
-        
+
 def query_and_respond(query: str) -> Dict:
     try:
         results = chroma_collection.query(

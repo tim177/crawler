@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AlertMessage } from "./Alert";
+import StoreButton from "./StoreDB";
 
 interface ApiResponse {
   success: boolean;
@@ -109,16 +110,31 @@ const ToggleSections = () => {
               >
                 Crawl Website
               </label>
-              <div className="flex mt-2 group">
-                <input
-                  type="url"
-                  id="crawl"
-                  placeholder="https://example.com/"
-                  value={crawlUrl}
-                  onChange={(e) => setCrawlUrl(e.target.value)}
-                  disabled={isLoading}
-                  className="flex-1 border border-gray-300 rounded-l-md px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400"
-                />
+              <div className="flex mt-2 group flex-col gap-4">
+                <div>
+                  <label>Link of website</label>
+                  <input
+                    type="url"
+                    id="crawl"
+                    placeholder="https://example.com/"
+                    value={crawlUrl}
+                    onChange={(e) => setCrawlUrl(e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 border border-gray-300 rounded-l-md px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400"
+                  />
+                </div>
+                {/* <div>
+                  <label>Link of website</label>
+                  <input
+                    type="url"
+                    id="crawl"
+                    placeholder="https://example.com/"
+                    value={crawlUrl}
+                    onChange={(e) => setCrawlUrl(e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 border border-gray-300 rounded-l-md px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all duration-200 disabled:bg-gray-100 disabled:text-gray-400"
+                  />
+                  </div> */}
                 <button
                   onClick={handleCrawlFetch}
                   disabled={isLoading}
@@ -234,6 +250,8 @@ const ToggleSections = () => {
                 </div>
               </div>
             )}
+
+            {apiResponse && <StoreButton links={apiResponse.links} />}
           </div>
         )}
 

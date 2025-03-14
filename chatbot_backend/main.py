@@ -48,21 +48,14 @@ def handle_crawl(request: CrawlRequest):
 
         print(f"🔄 Crawling started: {request.url}, maxPages={max_pages}", file=sys.stderr)
 
-        # ✅ Get links immediately
+        # ✅ Get links only (NO scraping here)
         links = crawl(request.url, max_pages)
         if not links:
             raise HTTPException(status_code=500, detail="No links found.")
 
-        # ✅ Store links
-        links_file = os.path.join(DATA_DIR, "links.json")
-        with open(links_file, "w", encoding="utf-8") as file:
-            json.dump(links, file, indent=2)
+        print(f"✅ Links fetched: {len(links)} links", file=sys.stderr)
 
-        print(f"✅ Links stored: {links_file}", file=sys.stderr)
-
-        # ✅ Process links synchronously
-        process_links(links_file)
-
+        # ✅ Return links immediately
         return {"success": True, "links": links}
 
     except Exception as e:
@@ -70,44 +63,29 @@ def handle_crawl(request: CrawlRequest):
         return {"error": str(e)}
 
 
-def process_links(links_file):
+@app.post("/store")
+def store_links(request: dict):
     try:
-        # ✅ Ensure file is fully written
-        retries = 5  # Maximum retries before failing
-        for _ in range(retries):
-            if os.path.exists(links_file) and os.path.getsize(links_file) > 0:
-                break
-            time.sleep(1)
-
-        # ✅ Read the stored links file
-        with open(links_file, "r", encoding="utf-8") as file:
-            links = json.load(file)
-
+        links = request.get("links", [])
         if not links:
-            print("❌ No links found in stored file.", file=sys.stderr)
-            return
+            raise HTTPException(status_code=400, detail="No links provided")
 
-        print(f"✅ Processing {len(links)} links...", file=sys.stderr)
+        print(f"✅ Storing {len(links)} links...", file=sys.stderr)
 
-        # ✅ Scrape stored links
-        scraped_data = scrape(links_file)
+        # ✅ Scrape the links
+        scraped_data = scrape(links)
         if not scraped_data:
-            print("❌ Scraping failed.", file=sys.stderr)
-            return
-
-        # ✅ Store scraped data
-        scraped_file = os.path.join(DATA_DIR, "scraped_data.json")
-        with open(scraped_file, "w", encoding="utf-8") as file:
-            json.dump(scraped_data, file, indent=2)
-
-        print(f"✅ Scraped data stored: {scraped_file}", file=sys.stderr)
+            raise HTTPException(status_code=500, detail="Scraping failed")
 
         # ✅ Store in ChromaDB
         store(scraped_data)
         print("✅ Data stored in ChromaDB", file=sys.stderr)
 
+        return {"success": True, "message": "Data stored successfully"}
+
     except Exception as e:
-        print(f"❌ Error in process_links: {e}", file=sys.stderr)
+        print(f"❌ Error in /store: {e}", file=sys.stderr)
+        return {"error": str(e)}
 
 
 @app.post("/query")
