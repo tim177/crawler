@@ -1,20 +1,18 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 import os
-import json
 import sys
 import asyncio
-import time
 
 # Import scraper functions
 from scrapper import crawl_urls as crawl, scrape_urls_from_file as scrape, process_and_store as store, query_and_respond as query
 
-# Initialize FastAPI app
+# ✅ Initialize FastAPI app
 app = FastAPI()
 
-# ✅ Properly configured CORS Middleware
+# ✅ Properly Configured CORS (No More Errors)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins
@@ -23,7 +21,16 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Request models
+# ✅ Handle Preflight CORS Requests
+@app.options("/{full_path:path}")
+async def preflight_handler(full_path: str):
+    return Response(status_code=200, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, DELETE, PUT",
+        "Access-Control-Allow-Headers": "*",
+    })
+
+# ✅ Request Models
 class CrawlRequest(BaseModel):
     url: str
     maxPages: int = 100
@@ -31,11 +38,11 @@ class CrawlRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: str
 
-# Define paths
+# ✅ Data Directory Setup
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-
+# ✅ Crawl API (Returns Links)
 @app.post("/crawl")
 def handle_crawl(request: CrawlRequest):
     try:
@@ -48,21 +55,23 @@ def handle_crawl(request: CrawlRequest):
 
         print(f"🔄 Crawling started: {request.url}, maxPages={max_pages}", file=sys.stderr)
 
-        # ✅ Get links only (NO scraping here)
         links = crawl(request.url, max_pages)
         if not links:
             raise HTTPException(status_code=500, detail="No links found.")
 
         print(f"✅ Links fetched: {len(links)} links", file=sys.stderr)
 
-        # ✅ Return links immediately
-        return {"success": True, "links": links}
+        # ✅ Return Response With CORS Headers
+        return JSONResponse(
+            content={"success": True, "links": links},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     except Exception as e:
         print(f"❌ Error in /crawl: {e}", file=sys.stderr)
-        return {"error": str(e)}
+        return JSONResponse(content={"error": str(e)}, status_code=500, headers={"Access-Control-Allow-Origin": "*"})
 
-
+# ✅ Store API (Stores Scraped Data)
 @app.post("/store")
 def store_links(request: dict):
     try:
@@ -77,24 +86,33 @@ def store_links(request: dict):
         if not scraped_data:
             raise HTTPException(status_code=500, detail="Scraping failed")
 
-        print("✅ data scrapped successfully now storing in chromadb")
+        print("✅ Data scraped successfully, now storing in ChromaDB")
 
         # ✅ Store in ChromaDB
-        # store(scraped_data)
+        store(scraped_data)
+
         print("✅ Data stored in ChromaDB", file=sys.stderr)
 
-        return {"success": True, "message": "Data stored successfully"}
+        # ✅ Return Response With CORS Headers
+        return JSONResponse(
+            content={"success": True, "message": "Data stored successfully"},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     except Exception as e:
         print(f"❌ Error in /store: {e}", file=sys.stderr)
-        return {"error": str(e)}
+        return JSONResponse(content={"error": str(e)}, status_code=500, headers={"Access-Control-Allow-Origin": "*"})
 
-
+# ✅ Query API (Fetches Data)
 @app.post("/query")
 async def handle_query(request: QueryRequest):
     try:
         result = await asyncio.to_thread(query, request.query)
-        return {"response": result}
+        return JSONResponse(
+            content={"response": result},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
     except Exception as e:
         print(f"❌ Error in /query: {e}", file=sys.stderr)
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return JSONResponse(content={"error": str(e)}, status_code=500, headers={"Access-Control-Allow-Origin": "*"})
+
