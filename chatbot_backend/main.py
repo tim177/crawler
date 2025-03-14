@@ -6,6 +6,7 @@ import os
 import json
 import sys
 import asyncio
+import time
 
 # Import scraper functions
 from scrapper import crawl_urls as crawl, scrape_urls_from_file as scrape, process_and_store as store, query_and_respond as query
@@ -34,8 +35,9 @@ class QueryRequest(BaseModel):
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
+
 @app.post("/crawl")
-def handle_crawl(request: CrawlRequest, background_tasks: BackgroundTasks):
+def handle_crawl(request: CrawlRequest):
     try:
         if not request.url:
             raise HTTPException(status_code=400, detail="URL is required")
@@ -58,17 +60,35 @@ def handle_crawl(request: CrawlRequest, background_tasks: BackgroundTasks):
 
         print(f"✅ Links stored: {links_file}", file=sys.stderr)
 
-        # ✅ Run scraping & storing in the background
-        background_tasks.add_task(process_links, links_file)
+        # ✅ Process links synchronously
+        process_links(links_file)
 
         return {"success": True, "links": links}
 
     except Exception as e:
         print(f"❌ Error in /crawl: {e}", file=sys.stderr)
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return {"error": str(e)}
+
 
 def process_links(links_file):
     try:
+        # ✅ Ensure file is fully written
+        retries = 5  # Maximum retries before failing
+        for _ in range(retries):
+            if os.path.exists(links_file) and os.path.getsize(links_file) > 0:
+                break
+            time.sleep(1)
+
+        # ✅ Read the stored links file
+        with open(links_file, "r", encoding="utf-8") as file:
+            links = json.load(file)
+
+        if not links:
+            print("❌ No links found in stored file.", file=sys.stderr)
+            return
+
+        print(f"✅ Processing {len(links)} links...", file=sys.stderr)
+
         # ✅ Scrape stored links
         scraped_data = scrape(links_file)
         if not scraped_data:
@@ -88,6 +108,7 @@ def process_links(links_file):
 
     except Exception as e:
         print(f"❌ Error in process_links: {e}", file=sys.stderr)
+
 
 @app.post("/query")
 async def handle_query(request: QueryRequest):
