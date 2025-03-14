@@ -13,6 +13,7 @@ import os
 import json
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from typing import List, Dict, Generator
 
 # Ensure the script prints output using UTF-8 encoding
 sys.stdout.reconfigure(encoding="utf-8")
@@ -160,23 +161,23 @@ def scrape_urls_from_file(links: List[str]) -> List[Dict]:
     return results
 
 
-def chunk_text(text: str, chunk_size: int = 1000) -> List[str]:
+def chunk_text(text: str, chunk_size: int = 1000) -> Generator[str, None, None]:
+    """Yields text chunks instead of storing them in a list."""
     words = text.split()
-    chunks, current_chunk, current_length = [], [], 0
+    current_chunk, current_length = [], 0
 
     for word in words:
         current_length += len(word) + 1
         if current_length > chunk_size:
-            chunks.append(' '.join(current_chunk))
+            yield ' '.join(current_chunk)
             current_chunk = [word]
             current_length = len(word)
         else:
             current_chunk.append(word)
 
     if current_chunk:
-        chunks.append(' '.join(current_chunk))
+        yield ' '.join(current_chunk)
 
-    return chunks
 
 def view_stored_data():
     try:
@@ -186,25 +187,54 @@ def view_stored_data():
         print(f"Error retrieving data: {e}")
 
 
+# def process_and_store(scraped_data: List[Dict]):
+#     chroma_docs, chroma_meta, chroma_ids = [], [], []
+#     doc_counter = 0
+
+#     for item in scraped_data:
+#         if item["status"] == "success" and item["content"]:
+#             chunks = chunk_text(item["content"])
+#             for chunk in chunks:
+#                 chroma_docs.append(chunk)
+#                 chroma_meta.append({"url": item["url"]})
+#                 chroma_ids.append(f"doc_{doc_counter}")
+#                 doc_counter += 1
+
+#     if chroma_docs:
+#         chroma_collection.add(
+#             documents=chroma_docs,
+#             metadatas=chroma_meta,
+#             ids=chroma_ids
+#         )
+
 def process_and_store(scraped_data: List[Dict]):
-    chroma_docs, chroma_meta, chroma_ids = [], [], []
+    """Stores scraped data in ChromaDB efficiently with batch processing."""
     doc_counter = 0
+    BATCH_SIZE = 50  # Store in smaller batches to prevent memory overflow
+
+    chroma_docs, chroma_meta, chroma_ids = [], [], []
 
     for item in scraped_data:
-        if item["status"] == "success" and item["content"]:
-            chunks = chunk_text(item["content"])
-            for chunk in chunks:
+        if item.get("status") == "success" and item.get("content"):
+            for chunk in chunk_text(item["content"]):
                 chroma_docs.append(chunk)
                 chroma_meta.append({"url": item["url"]})
                 chroma_ids.append(f"doc_{doc_counter}")
                 doc_counter += 1
 
+                # Store batch when batch size is reached
+                if len(chroma_docs) >= BATCH_SIZE:
+                    store_batch(chroma_docs, chroma_meta, chroma_ids)
+                    chroma_docs, chroma_meta, chroma_ids = [], [], []  # Clear memory
+
+    # Store any remaining data
     if chroma_docs:
-        chroma_collection.add(
-            documents=chroma_docs,
-            metadatas=chroma_meta,
-            ids=chroma_ids
-        )
+        store_batch(chroma_docs, chroma_meta, chroma_ids)
+
+def store_batch(docs: List[str], meta: List[Dict], ids: List[str]):
+    """Stores a batch of documents in ChromaDB."""
+    if docs:
+        chroma_collection.add(documents=docs, metadatas=meta, ids=ids)
 
 def query_and_respond(query: str) -> Dict:
     try:
