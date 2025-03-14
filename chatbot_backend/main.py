@@ -81,35 +81,26 @@ async def options_crawl():
 @app.post("/crawl")
 async def crawl(request: CrawlRequest):
     try:
-        # Step 1: Run Crawler and Get Links
         links = run_python_script("crawl", [request.url, str(request.maxPages)])
-
-        # Step 2: Store links in JSON file
         links_file_path = os.path.join(DATA_DIR, "links.json")
         with open(links_file_path, "w", encoding="utf-8") as file:
             json.dump(links, file, indent=2)
-
-        # Step 3: Run Scraper on Stored Links
         scraped_data = run_python_script("scrape", [links_file_path])
-
-        # Step 4: Store scraped data in another JSON file
         scraped_data_file_path = os.path.join(DATA_DIR, "scraped_data.json")
         with open(scraped_data_file_path, "w", encoding="utf-8") as file:
             json.dump(scraped_data, file, indent=2)
-
-        # Step 5: Pass Scraped Data to ChromaDB Processor
         processing_result = run_python_script("store", [scraped_data_file_path])
-
-        # Step 6: Retrieve stored results
         result = run_python_script("view", [])
-        print(result)
-
-        response = {"success": True, "stored": processing_result}
+        response = JSONResponse(content={"success": True, "stored": processing_result})
     except HTTPException as e:
-        response = {"error": e.detail}
+        response = JSONResponse(content={"error": e.detail})
     except Exception as e:
-        response = {"error": str(e)}
+        response = JSONResponse(content={"error": str(e)})
 
+    # Add CORS headers manually
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
 @app.options("/query")  # Handle OPTIONS request for /query
