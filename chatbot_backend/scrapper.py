@@ -19,7 +19,7 @@ from typing import List, Dict, Generator
 sys.stdout.reconfigure(encoding="utf-8")
 
 # Initialize ChromaDB
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
+chroma_client = chromadb.Client()
 chroma_collection = chroma_client.get_or_create_collection(
     name="web_content",
     embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(
