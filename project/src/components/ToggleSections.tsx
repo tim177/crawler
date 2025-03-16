@@ -19,7 +19,9 @@ const ToggleSections = () => {
   const [scrapedData, setScrapedData] = useState<any[]>([]);
   const [loadingScrape, setLoadingScrape] = useState(false);
   const [loadingStore, setLoadingStore] = useState(false);
-  console.log(links);
+  console.log("1. apiResponse = ", apiResponse);
+  console.log("2. scrapedData = ", scrapedData);
+
   const handleCrawlFetch = async () => {
     if (!crawlUrl.startsWith("http://") && !crawlUrl.startsWith("https://")) {
       alert("Please enter a valid URL starting with http:// or https://");
@@ -97,6 +99,7 @@ const ToggleSections = () => {
       });
 
       const data = await response.json();
+      console.log("3. stored data = ", data);
       if (data.success) {
         alert("Data stored successfully!");
       } else {

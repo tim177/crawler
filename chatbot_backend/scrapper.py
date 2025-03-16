@@ -19,8 +19,16 @@ from typing import List, Dict, Generator
 sys.stdout.reconfigure(encoding="utf-8")
 
 # Initialize ChromaDB
-chroma_client = chromadb.Client()
-chroma_collection = chroma_client.get_or_create_collection(
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+
+# Delete existing collection if it exists
+try:
+    chroma_client.delete_collection(name="web_content")
+except Exception as e:
+    print(f"Warning: Could not delete existing collection - {str(e)}")
+
+# Create a new collection
+chroma_collection = chroma_client.create_collection(
     name="web_content",
     embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name="all-MiniLM-L6-v2"
@@ -93,43 +101,6 @@ def crawl_urls(homepage: str, max_pages: int = 100) -> List[str]:
 
     return list(all_urls)
 
-# def scrape_urls_from_file(file_path: str) -> List[Dict]:
-#     try:
-#         with open(file_path, 'r') as f:
-#             urls = json.load(f)
-#         if not isinstance(urls, list):
-#             raise ValueError("File content is not a valid JSON array.")
-#     except Exception as e:
-#         print(f"Error reading file {file_path}: {e}", file=sys.stderr)
-#         return []
-
-#     def scrape_single_url(url: str) -> Dict:
-#         try:
-#             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-#             response = requests_retry_session().get(url, headers=headers, timeout=10)
-#             response.raise_for_status()
-
-#             soup = BeautifulSoup(response.text, 'html.parser')
-
-#             for script in soup(["script", "style"]):
-#                 script.decompose()
-
-#             text = soup.get_text()
-#             text = re.sub(r'\s+', ' ', text).strip()
-#             text = re.sub(r'[^\w\s.,?!-]', '', text)
-
-#             return {"url": url, "content": text, "status": "success"}
-#         except Exception as e:
-#             return {"url": url, "content": "", "status": f"error: {str(e)}"}
-
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-#         results = list(tqdm(
-#             executor.map(scrape_single_url, urls),
-#             total=len(urls),
-#             desc="Scraping URLs"
-#         ))
-
-#     return results
 
 def scrape_urls_from_file(links: List[str]) -> List[Dict]:
     def scrape_single_url(url: str) -> Dict:
@@ -187,49 +158,26 @@ def view_stored_data():
         print(f"Error retrieving data: {e}")
 
 
-# def process_and_store(scraped_data: List[Dict]):
-#     chroma_docs, chroma_meta, chroma_ids = [], [], []
-#     doc_counter = 0
-
-#     for item in scraped_data:
-#         if item["status"] == "success" and item["content"]:
-#             chunks = chunk_text(item["content"])
-#             for chunk in chunks:
-#                 chroma_docs.append(chunk)
-#                 chroma_meta.append({"url": item["url"]})
-#                 chroma_ids.append(f"doc_{doc_counter}")
-#                 doc_counter += 1
-
-#     if chroma_docs:
-#         chroma_collection.add(
-#             documents=chroma_docs,
-#             metadatas=chroma_meta,
-#             ids=chroma_ids
-#         )
-
 def process_and_store(scraped_data: List[Dict]):
-    """Stores scraped data in ChromaDB efficiently with batch processing."""
-    doc_counter = 0
-    BATCH_SIZE = 50  # Store in smaller batches to prevent memory overflow
-
     chroma_docs, chroma_meta, chroma_ids = [], [], []
+    doc_counter = 0
 
     for item in scraped_data:
-        if item.get("status") == "success" and item.get("content"):
-            for chunk in chunk_text(item["content"]):
+        if item["status"] == "success" and item["content"]:
+            chunks = chunk_text(item["content"])
+            for chunk in chunks:
                 chroma_docs.append(chunk)
                 chroma_meta.append({"url": item["url"]})
                 chroma_ids.append(f"doc_{doc_counter}")
                 doc_counter += 1
 
-                # Store batch when batch size is reached
-                if len(chroma_docs) >= BATCH_SIZE:
-                    store_batch(chroma_docs, chroma_meta, chroma_ids)
-                    chroma_docs, chroma_meta, chroma_ids = [], [], []  # Clear memory
-
-    # Store any remaining data
     if chroma_docs:
-        store_batch(chroma_docs, chroma_meta, chroma_ids)
+        chroma_collection.add(
+            documents=chroma_docs,
+            metadatas=chroma_meta,
+            ids=chroma_ids
+        )
+
 
 def store_batch(docs: List[str], meta: List[Dict], ids: List[str]):
     """Stores a batch of documents in ChromaDB."""

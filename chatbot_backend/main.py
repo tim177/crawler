@@ -3,8 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 import os
+import json
 import sys
 import asyncio
+import scrapper
+import importlib
 
 # Import scraper functions
 from scrapper import crawl_urls as crawl, scrape_urls_from_file as scrape, process_and_store as store, query_and_respond as query
@@ -42,11 +45,15 @@ class QueryRequest(BaseModel):
 # ✅ Data Directory Setup
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
+SCRAPED_DATA_FILE = os.path.join(DATA_DIR, "scraped_data.json")
 
 # ✅ Crawl API (Returns Links)
 @app.post("/crawl")
 def handle_crawl(request: CrawlRequest):
     try:
+        # ✅ Reload scrapper.py before every request
+        importlib.reload(scrapper)
+
         if not request.url:
             raise HTTPException(status_code=400, detail="URL is required")
 
@@ -61,6 +68,15 @@ def handle_crawl(request: CrawlRequest):
             raise HTTPException(status_code=500, detail="No links found.")
 
         print(f"✅ Links fetched: {len(links)} links", file=sys.stderr)
+
+        os.makedirs(DATA_DIR, exist_ok=True)  # Create the directory if it does not exist
+
+        # ✅ Store Links in `data/links.json`
+        links_file_path = os.path.join(DATA_DIR, "links.json")
+        with open(links_file_path, "w", encoding="utf-8") as f:
+            json.dump(links, f, indent=2)
+
+        print(f"✅ Links stored in {links_file_path}", file=sys.stderr)
 
         # ✅ Return Response With CORS Headers
         return JSONResponse(
@@ -89,6 +105,15 @@ def scrape_links(request: dict):
             raise HTTPException(status_code=500, detail="Scraping failed")
 
         print("✅ Data scraped successfully", file=sys.stderr)
+
+         # ✅ Ensure the data directory exists
+        os.makedirs(DATA_DIR, exist_ok=True)
+
+        # ✅ Store scraped data in a JSON file
+        with open(SCRAPED_DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(scraped_data, f, indent=2, ensure_ascii=False)
+
+        print(f"✅ Scraped data saved to {SCRAPED_DATA_FILE}", file=sys.stderr)
 
         # ✅ Return scraped data
         return JSONResponse(
